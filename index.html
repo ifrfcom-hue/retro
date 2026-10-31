@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>레트로 단어 슈터</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @font-face {
+            font-family: 'DungGeunMo';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+        body {
+            font-family: 'DungGeunMo', sans-serif;
+            background-color: #0b0c16; /* Dark background from image */
+            color: #e5e7eb;
+            margin: 0;
+            overflow: hidden; 
+            touch-action: none;
+        }
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background-color: transparent;
+        }
+        /* Custom Scrollbar for retro theme */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f101f; }
+        ::-webkit-scrollbar-thumb { background: #2a2c4c; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4a4d8c; }
+        
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+        }
+        
+        .retro-border {
+            background-color: #0f101f;
+            border: 1px solid #2a2c4c;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen p-4 gap-3">
+
+    <!-- Header -->
+    <header class="flex gap-4 items-stretch h-12 shrink-0">
+        <div class="flex flex-col justify-center min-w-[200px]">
+            <div class="text-[#facc15] text-2xl font-bold tracking-widest leading-none">WORD SKY</div>
+            <div class="text-xs text-gray-300 mt-1">정보 단어 슈팅 퀴즈</div>
+        </div>
+        <input type="text" id="topicInput" class="flex-1 bg-[#141525] border border-[#2a2c4c] rounded px-4 focus:outline-none focus:border-[#4a4d8c] text-white" placeholder="복습할 단원이나 내용 (예: 정렬 알고리즘, 네트워크 프로토콜)">
+        <div class="flex gap-2 text-sm">
+            <button id="btnMake" class="bg-[#1a1b33] border border-[#2a2c4c] hover:bg-[#2a2c4c] px-4 rounded transition-colors">문제 만들기</button>
+            <button class="bg-[#facc15] text-black font-bold px-4 rounded hover:bg-yellow-500 transition-colors">반 전체 출제</button>
+            <button id="btnAdmin" class="bg-[#141525] border border-[#facc15] text-[#facc15] hover:bg-[#facc15] hover:text-black px-4 rounded transition-colors">관리자</button>
+            <button class="bg-[#1a1b33] border border-[#2a2c4c] hover:bg-[#2a2c4c] px-4 rounded transition-colors">소리 켬</button>
+        </div>
+    </header>
+
+    <!-- Question Area -->
+    <div class="retro-border rounded p-4 flex flex-col justify-center min-h-[80px] shrink-0">
+        <div id="questionContainer" class="hidden flex-col gap-2">
+            <div class="text-xl flex gap-4 items-center">
+                <span id="qNumber" class="text-[#38bdf8] font-bold text-lg">Q 1/20</span>
+                <span id="questionText" class="font-bold text-white tracking-wide">문제를 불러오는 중...</span>
+            </div>
+            <div class="text-xs text-[#64748b]">선생님 출제: <span id="topicLabel">알고리즘</span> · 20문항</div>
+        </div>
+        <div id="welcomeText" class="text-gray-400 text-center">상단에 복습할 단원을 입력하고 '문제 만들기'를 눌러주세요.</div>
+    </div>
+
+    <!-- Main Split View -->
+    <div class="flex flex-1 gap-4 min-h-0">
+        
+        <!-- Left: Game Area -->
+        <div class="flex-1 relative retro-border rounded overflow-hidden flex flex-col">
+            <!-- Game HUD Overlays -->
+            <div class="absolute top-4 left-6 z-10 font-bold text-xl pointer-events-none tracking-widest text-white">
+                SCORE <span id="scoreDisplay" class="text-white">0</span>
+            </div>
+            <div class="absolute top-4 left-1/2 -translate-x-1/2 z-10 font-bold text-xl pointer-events-none tracking-widest text-white">
+                TIME <span id="timeDisplay" class="text-[#facc15]">0</span>
+            </div>
+            <div class="absolute top-4 right-4 z-10 flex gap-2 pointer-events-auto">
+                <button id="btnPause" class="bg-[#1a1b33] border border-[#2a2c4c] text-sm px-3 py-1 rounded hover:bg-[#2a2c4c] text-white">II 멈춤</button>
+                <button id="btnHome" class="bg-[#1a1b33] border border-[#2a2c4c] text-sm px-3 py-1 rounded hover:bg-[#2a2c4c] text-white">메인</button>
+            </div>
+            
+            <canvas id="gameCanvas" class="flex-1"></canvas>
+        </div>
+
+        <!-- Right: Sidebar -->
+        <div class="w-80 flex flex-col gap-3 shrink-0">
+            <!-- Current Status -->
+            <div class="retro-border rounded p-4 text-sm">
+                <div class="flex justify-between text-[#38bdf8] border-b border-[#2a2c4c] pb-2 mb-3">
+                    <span>지금 접속</span>
+                    <span id="onlineCount">1명</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <div class="flex items-start gap-2">
+                        <div class="w-2 h-2 bg-[#4ade80] rounded-sm mt-1"></div>
+                        <div>
+                            <div class="font-bold text-white"><span id="myNicknameDisplay">조종사</span> <span class="text-xs text-red-400">나</span></div>
+                            <div class="text-xs text-gray-400 mt-1">플레이 대기 중</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-bold text-white text-lg leading-none mb-1"><span id="myScoreDisplay">0</span></div>
+                        <div class="text-xs text-gray-400">점</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Ranking -->
+            <div class="retro-border rounded flex-1 flex flex-col min-h-0">
+                <div class="flex justify-between items-center p-4 border-b border-[#2a2c4c]">
+                    <span class="text-[#38bdf8] font-bold text-lg tracking-widest">LIVE RANKING</span>
+                    <span class="text-xs text-gray-400">플레이 중</span>
+                </div>
+                <div class="flex text-center border-b border-[#2a2c4c] text-sm">
+                    <div class="flex-1 py-2 text-[#facc15] border-b-2 border-[#facc15] bg-[#1a1b33] cursor-pointer">누적 점수</div>
+                    <div class="flex-1 py-2 text-gray-500 cursor-pointer hover:bg-[#1a1b33]">이번 게임</div>
+                </div>
+                <div id="leaderboardList" class="flex-1 overflow-y-auto p-2 space-y-1">
+                    <div class="text-gray-500 text-center mt-10 text-sm">서버에 연결 중...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="retro-border rounded flex flex-col shrink-0 text-sm p-3 gap-2">
+        <div class="flex flex-wrap justify-center gap-4 items-center">
+            <div class="flex items-center gap-2">
+                <span class="text-gray-400 text-xs">배경:</span>
+                <div class="flex gap-1" id="bgSelectGroup">
+                    <button class="bg-[#1a1b33] border border-[#facc15] text-[#facc15] px-2 py-1 rounded text-xs transition-colors" data-bg="우주">우주</button>
+                    <button class="bg-[#141525] border border-[#2a2c4c] text-gray-400 px-2 py-1 rounded text-xs hover:bg-[#1a1b33] transition-colors" data-bg="노을 도시">노을 도시</button>
+                    <button class="bg-[#141525] border border-[#2a2c4c] text-gray-400 px-2 py-1 rounded text-xs hover:bg-[#1a1b33] transition-colors" data-bg="바다">바다</button>
+                    <button class="bg-[#141525] border border-[#2a2c4c] text-gray-400 px-2 py-1 rounded text-xs hover:bg-[#1a1b33] transition-colors" data-bg="사이버">사이버</button>
+                    <button class="bg-[#141525] border border-[#2a2c4c] text-gray-400 px-2 py-1 rounded text-xs hover:bg-[#1a1b33] transition-colors" data-bg="파란 하늘">파란 하늘</button>
+                    <button class="bg-[#141525] border border-[#2a2c4c] text-gray-400 px-2 py-1 rounded text-xs hover:bg-[#1a1b33] transition-colors" data-bg="회로판">회로판</button>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-gray-400 text-xs">비행기:</span>
+                <div class="flex gap-1" id="shipSelectGroup">
+                    <button class="bg-[#1a1b33] border border-[#facc15] text-[#facc15] px-2 py-1 rounded text-xs transition-colors" data-ship="type1">우주선</button>
+                    <button class="bg-[#141525] border border-[#2a2c4c] text-gray-400 px-2 py-1 rounded text-xs hover:bg-[#1a1b33] transition-colors" data-ship="type2">전투기</button>
+                    <button class="bg-[#141525] border border-[#2a2c4c] text-gray-400 px-2 py-1 rounded text-xs hover:bg-[#1a1b33] transition-colors" data-ship="type3">스텔스기</button>
+                    <button class="bg-[#141525] border border-[#2a2c4c] text-gray-400 px-2 py-1 rounded text-xs hover:bg-[#1a1b33] transition-colors" data-ship="type4">비행접시</button>
+                    <button class="bg-[#141525] border border-[#2a2c4c] text-gray-400 px-2 py-1 rounded text-xs hover:bg-[#1a1b33] transition-colors" data-ship="type5">종이비행기</button>
+                    <button class="bg-[#141525] border border-[#2a2c4c] text-gray-400 px-2 py-1 rounded text-xs hover:bg-[#1a1b33] transition-colors" data-ship="type6">제트기</button>
+                </div>
+            </div>
+        </div>
+        <div class="text-center text-gray-500 text-xs tracking-wide">
+            ← → 또는 WASD 로 이동 · 스페이스바로 발사 · P 또는 Esc로 멈춤
+        </div>
+    </div>
+
+    <!-- Modals -->
+    
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="retro-border p-8 max-w-md w-full text-center rounded">
+            <h1 class="text-3xl text-[#facc15] font-bold mb-2 tracking-widest">WORD SKY</h1>
+            <p class="mb-6 text-gray-400 text-sm">순위에 등록할 닉네임을 입력하세요.</p>
+            <input type="text" id="nicknameInput" maxlength="12" placeholder="닉네임" class="w-full bg-[#141525] border border-[#2a2c4c] text-white p-3 rounded mb-6 outline-none focus:border-[#facc15] text-center font-bold" autocomplete="off">
+            
+            <button id="btnJoin" class="w-full bg-[#facc15] hover:bg-yellow-500 text-black font-bold py-3 rounded transition-colors">접속하기</button>
+        </div>
+    </div>
+
+    <!-- Admin Modal -->
+    <div id="adminModal" class="modal-overlay fixed inset-0 z-[60] hidden flex-col items-center justify-center p-4">
+        <div class="retro-border p-6 max-w-2xl w-full flex flex-col h-[80vh] rounded">
+            <div class="flex justify-between items-center mb-4 border-b border-[#2a2c4c] pb-4">
+                <h2 class="text-xl text-[#facc15] font-bold tracking-widest">관리자 모드</h2>
+                <button id="btnAdminClose" class="text-gray-400 hover:text-red-500 font-bold text-xl">&times;</button>
+            </div>
+            
+            <div class="flex-1 flex flex-col md:flex-row gap-4 overflow-hidden mt-2">
+                <div class="flex-1 bg-[#141525] rounded p-4 flex flex-col overflow-hidden border border-[#2a2c4c]">
+                    <h3 class="text-[#38bdf8] font-bold mb-4 text-center">🏆 학생 전체 랭킹</h3>
+                    <div id="adminRankingList" class="flex-1 overflow-y-auto space-y-2 pr-2 text-sm"></div>
+                </div>
+                <div class="flex-1 bg-[#141525] rounded p-4 flex flex-col overflow-hidden border border-[#2a2c4c]">
+                    <h3 class="text-[#f87171] font-bold mb-4 text-center">📝 자주 틀리는 단어</h3>
+                    <div id="adminWrongWordsList" class="flex-1 overflow-y-auto space-y-2 pr-2 text-sm"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert/Loading Modal -->
+    <div id="alertModal" class="modal-overlay fixed inset-0 z-[70] hidden items-center justify-center p-4">
+        <div class="retro-border p-6 max-w-sm w-full text-center rounded border-[#f87171]">
+            <p id="alertMessage" class="mb-6 text-[#f87171] font-bold leading-relaxed text-sm">오류 메시지</p>
+            <button id="btnAlertOk" class="bg-[#1a1b33] border border-[#2a2c4c] text-white font-bold px-6 py-2 rounded hover:bg-[#2a2c4c]">확인</button>
+        </div>
+    </div>
+
+    <div id="loadingOverlay" class="absolute inset-0 z-40 hidden flex-col items-center justify-center bg-[#0b0c16] bg-opacity-90">
+        <div class="text-[#facc15] font-bold text-2xl mb-4 tracking-widest animate-pulse">GENERATING...</div>
+        <div class="text-sm text-[#38bdf8]">AI가 문제를 생성하고 있습니다</div>
+    </div>
+
+    <!-- Firebase SDK Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, query, increment, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Setup
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'vocab-shooter-app';
+        let firebaseConfig = null;
+        try {
+            firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+                // Mock config for local testing if needed, though usually provided by env
+                apiKey: "mock-key", projectId: "mock-project"
+            };
+        } catch (e) {
+            console.error("Firebase config error", e);
+        }
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // Game State
+        let gameState = {
+            isRunning: false,
+            isPaused: false,
+            score: 0,
+            nickname: "",
+            userId: null,
+            topic: "",
+            background: "우주", 
+            shipType: "type1",
+            questionQueue: [],
+            currentQuestion: null,
+            totalQuestions: 0,
+            currentQIndex: 0,
+            lastScoreSync: 0,
+            timeElapsed: 0,
+            timerInterval: null
+        };
+
+        // DOM Elements Update
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const modals = {
+            login: document.getElementById('loginModal'),
+            admin: document.getElementById('adminModal'),
+            alert: document.getElementById('alertModal'),
+            loading: document.getElementById('loadingOverlay')
+        };
+        const els = {
+            nicknameInput: document.getElementById('nicknameInput'),
+            topicInput: document.getElementById('topicInput'),
+            btnJoin: document.getElementById('btnJoin'),
+            btnMake: document.getElementById('btnMake'), // New button
+            btnAdmin: document.getElementById('btnAdmin'),
+            btnAdminClose: document.getElementById('btnAdminClose'),
+            adminRankingList: document.getElementById('adminRankingList'),
+            adminWrongWordsList: document.getElementById('adminWrongWordsList'),
+            btnHome: document.getElementById('btnHome'),
+            btnPause: document.getElementById('btnPause'),
+            scoreDisplay: document.getElementById('scoreDisplay'),
+            timeDisplay: document.getElementById('timeDisplay'),
+            questionContainer: document.getElementById('questionContainer'),
+            welcomeText: document.getElementById('welcomeText'),
+            questionText: document.getElementById('questionText'),
+            qNumber: document.getElementById('qNumber'),
+            topicLabel: document.getElementById('topicLabel'),
+            leaderboardList: document.getElementById('leaderboardList'),
+            myNicknameDisplay: document.getElementById('myNicknameDisplay'),
+            myScoreDisplay: document.getElementById('myScoreDisplay'),
+            alertMessage: document.getElementById('alertMessage'),
+            btnAlertOk: document.getElementById('btnAlertOk')
+        };
+
+        // Utility: Custom Alert
+        function showAlert(msg) {
+            els.alertMessage.innerText = msg;
+            modals.alert.classList.remove('hidden');
+            modals.alert.classList.add('flex');
+        }
+        els.btnAlertOk.addEventListener('click', () => {
+            modals.alert.classList.add('hidden');
+            modals.alert.classList.remove('flex');
+        });
+
+        // ==========================================
+        // FIREBASE LOGIC
+        // ==========================================
+        
+        async function initAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                
+                gameState.userId = auth.currentUser.uid;
+                setupLeaderboardListener();
+                
+                // Check if user already has a session/nickname saved locally (for persistence across reloads in same iframe)
+                // For this implementation, we force login to get nickname every time to ensure it matches their intent,
+                // but we could use local variables if needed. We'll stick to the modal.
+            } catch (error) {
+                console.error("Auth error:", error);
+                showAlert("서버 연결에 실패했습니다.");
+            }
+        }
+
+        async function saveScore() {
+            if (!gameState.userId || !gameState.nickname) return;
+            
+            // Debounce saves slightly to prevent spam if score changes rapidly
+            const now = Date.now();
+            if (now - gameState.lastScoreSync < 1000) return; 
+            gameState.lastScoreSync = now;
+
+            try {
+                const lbRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', gameState.userId);
+                await setDoc(lbRef, {
+                    nickname: gameState.nickname,
+                    score: gameState.score,
+                    updatedAt: now
+                }, { merge: true });
+            } catch (e) {
+                console.error("Error saving score:", e);
+            }
+        }
+
+        function setupLeaderboardListener() {
+            if (!gameState.userId) return;
+            
+            const lbCollection = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
+            // Rule 2: No complex queries. We fetch all and sort in memory.
+            const q = query(lbCollection);
+            
+            onSnapshot(q, (snapshot) => {
+                let players = [];
+                snapshot.forEach(doc => {
+                    players.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // Sort descending by score
+                players.sort((a, b) => b.score - a.score);
+                
+                renderLeaderboard(players);
+            }, (error) => {
+                console.error("Leaderboard listener error:", error);
+            });
+        }
+
+        function renderLeaderboard(players) {
+            els.leaderboardList.innerHTML = '';
+            if (players.length === 0) {
+                els.leaderboardList.innerHTML = '<div class="text-gray-500 text-center mt-10 text-sm">등록된 조종사가 없습니다.</div>';
+                return;
+            }
+
+            players.forEach((p, index) => {
+                const isMe = p.id === gameState.userId;
+                const item = document.createElement('div');
+                item.className = `flex justify-between items-center p-3 rounded-md ${isMe ? 'bg-[#1a1b33] border border-[#38bdf8]' : 'bg-[#0f101f] border border-transparent hover:bg-[#141525]'}`;
+                
+                let rankColor = 'text-gray-500';
+                if (index === 0) rankColor = 'text-[#facc15]';
+                else if (index === 1) rankColor = 'text-gray-300';
+                else if (index === 2) rankColor = 'text-[#fb923c]';
+
+                item.innerHTML = `
+                    <div class="flex items-center space-x-3 truncate">
+                        <span class="${rankColor} font-bold text-sm w-4">${index + 1}</span>
+                        <div class="flex flex-col">
+                            <span class="text-white font-bold truncate max-w-[100px] text-sm">${p.nickname} ${isMe ? '<span class="text-[#4ade80] text-[10px] ml-1">● LIVE</span>' : ''}</span>
+                            <span class="text-[10px] text-gray-500">최고 ${p.score}</span>
+                        </div>
+                    </div>
+                    <div class="text-white font-bold text-lg font-['DungGeunMo']">${p.score}</div>
+                `;
+                els.leaderboardList.appendChild(item);
+            });
+        }
+
+        // ==========================================
+        // GEMINI API LOGIC
+        // ==========================================
+        
+        async function fetchQuestions(topic) {
+            modals.loading.classList.remove('hidden');
+            modals.loading.classList.add('flex');
+            gameState.isRunning = false; // Pause game
+
+            const prompt = `You are a trivia game engine. Generate exactly 20 multiple-choice questions in Korean about the educational topic: "${topic}".
+Respond ONLY with a valid JSON array. Do not include markdown formatting like \`\`\`json or any other text.
+Format requirement:
+[
+  { "question": "Question text here in Korean?", "correct": "Correct Answer in Korean", "incorrect": ["Wrong 1 in Korean", "Wrong 2 in Korean", "Wrong 3 in Korean"] }
+]
+Keep questions concise and answers short (max 2-3 words if possible).`;
+
+            const apiKey = ""; // Canvas provides this
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+            try {
+                // Implement basic backoff/retry
+                let response = null;
+                let retries = 3;
+                let delay = 1000;
+                
+                while (retries > 0) {
+                    try {
+                        response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{ parts: [{ text: prompt }] }],
+                                generationConfig: {
+                                    responseMimeType: "application/json",
+                                    responseSchema: {
+                                        type: "ARRAY",
+                                        items: {
+                                            type: "OBJECT",
+                                            properties: {
+                                                question: { type: "STRING" },
+                                                correct: { type: "STRING" },
+                                                incorrect: {
+                                                    type: "ARRAY",
+                                                    items: { type: "STRING" }
+                                                }
+                                            },
+                                            required: ["question", "correct", "incorrect"]
+                                        }
+                                    }
+                                }
+                            })
+                        });
+                        if (response.ok) break;
+                    } catch (e) {
+                        // ignore network error for retry
+                    }
+                    retries--;
+                    await new Promise(r => setTimeout(r, delay));
+                    delay *= 2;
+                }
+
+                if (!response || !response.ok) throw new Error("Failed to fetch from Gemini.");
+
+                const data = await response.json();
+                let resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                
+                if (!resultText) throw new Error("Invalid response format from Gemini.");
+                
+                // Clean up potential markdown just in case (though we requested application/json)
+                resultText = resultText.replace(/```json/g, '').replace(/```/g, '').trim();
+                
+                const parsed = JSON.parse(resultText);
+                if (!Array.isArray(parsed) || parsed.length === 0) throw new Error("Invalid data structure.");
+
+                gameState.questionQueue = parsed;
+                gameState.totalQuestions = parsed.length;
+                gameState.currentQIndex = 0;
+                
+                els.welcomeText.classList.add('hidden');
+                els.questionContainer.classList.remove('hidden');
+                els.questionContainer.classList.add('flex');
+                els.topicLabel.innerText = topic;
+
+                // Start Timer
+                gameState.timeElapsed = 0;
+                els.timeDisplay.innerText = gameState.timeElapsed;
+                if(gameState.timerInterval) clearInterval(gameState.timerInterval);
+                gameState.timerInterval = setInterval(() => {
+                    if(gameState.isRunning && !gameState.isPaused) {
+                        gameState.timeElapsed++;
+                        els.timeDisplay.innerText = gameState.timeElapsed;
+                    }
+                }, 1000);
+
+                loadNextQuestion();
+
+            } catch (error) {
+                console.error("Gemini API Error:", error);
+                showAlert("데이터 생성에 실패했습니다. 다른 주제를 시도해보세요.");
+            } finally {
+                modals.loading.classList.add('hidden');
+                modals.loading.classList.remove('flex');
+            }
+        }
+
+        function loadNextQuestion() {
+            if (gameState.questionQueue.length === 0) {
+                // Done with questions
+                gameState.isRunning = false;
+                els.questionText.innerText = "모든 문제를 완료했습니다!";
+                els.qNumber.innerText = "CLEAR";
+                clearInterval(gameState.timerInterval);
+                return;
+            }
+
+            // 루프 중복 실행을 막기 위해 이전 상태 저장
+            const wasRunning = gameState.isRunning;
+
+            gameState.currentQIndex++;
+            gameState.currentQuestion = gameState.questionQueue.shift();
+            
+            els.qNumber.innerText = `Q ${gameState.currentQIndex}/${gameState.totalQuestions}`;
+            els.questionText.innerText = gameState.currentQuestion.question;
+            
+            spawnWords();
+            gameState.isRunning = true;
+            
+            // 게임 루프가 돌고 있지 않을 때만 새로 시작 (중첩 가속 버그 방지)
+            if (!wasRunning) {
+                lastTime = performance.now();
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // ==========================================
+        // GAME ENGINE
+        // ==========================================
+        
+        let lastTime = 0;
+        let particles = [];
+        
+        // Game Objects
+        const player = {
+            x: 0, y: 0, width: 40, height: 40, speed: 5,
+            targetX: 0, targetY: 0,
+            cooldown: 0, fireRate: 15 // frames between auto-shots
+        };
+        
+        let bullets = [];
+        let enemies = [];
+        
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            // Reposition player to bottom center
+            if (player.x === 0) {
+                player.x = canvas.width / 2;
+                player.y = canvas.height - player.height - 20;
+                player.targetX = player.x;
+                player.targetY = player.y;
+            } else {
+                if (player.targetY === undefined) player.targetY = player.y;
+                // 화면 크기 변경 시 경계선 안으로 보정
+                player.targetY = Math.min(player.targetY, canvas.height - player.height/2);
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function initGameObjects() {
+            resizeCanvas();
+            bullets = [];
+            particles = [];
+            enemies = [];
+        }
+
+        function spawnWords() {
+            enemies = [];
+            if (!gameState.currentQuestion) return;
+
+            const words = [
+                { text: gameState.currentQuestion.correct, isCorrect: true },
+                ...gameState.currentQuestion.incorrect.map(w => ({ text: w, isCorrect: false }))
+            ];
+
+            // Shuffle words
+            for (let i = words.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [words[i], words[j]] = [words[j], words[i]];
+            }
+
+            // Distribute across lanes
+            const laneWidth = canvas.width / words.length;
+            const colors = ['#38bdf8', '#fb923c', '#f87171', '#4ade80']; // Cyan, Orange, Red, Green
+            
+            // 단어가 내려오는 속도를 눈에 띄게 더 느리게 줄임
+            const baseSpeed = 0.6; 
+
+            words.forEach((w, i) => {
+                ctx.font = "bold 16px 'DungGeunMo'";
+                const textWidth = ctx.measureText(w.text).width;
+                
+                enemies.push({
+                    x: (i * laneWidth) + (laneWidth / 2),
+                    y: -50 - (Math.random() * 100), 
+                    text: w.text,
+                    isCorrect: w.isCorrect,
+                    width: textWidth + 30,
+                    height: 36,
+                    speed: baseSpeed + (Math.random() * 0.3), 
+                    active: true,
+                    color: colors[i % colors.length],
+                    wobbleOffset: Math.random() * Math.PI * 2
+                });
+            });
+        }
+
+        function createExplosion(x, y, color, isBig = false) {
+            const count = isBig ? 30 : 15;
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * (isBig ? 8 : 4),
+                    vy: (Math.random() - 0.5) * (isBig ? 8 : 4),
+                    life: 1.0,
+                    color: color,
+                    size: Math.random() * 3 + 1 // Square pixel particles
+                });
+            }
+        }
+
+        async function recordWrongWord(word) {
+            try {
+                // Ensure no slashes in word as document ID
+                const safeWord = word.replace(/\//g, '_');
+                const wordRef = doc(db, 'artifacts', appId, 'public', 'data', 'wrong_words', safeWord);
+                await setDoc(wordRef, { word: word, count: increment(1) }, { merge: true });
+            } catch (e) {
+                console.error("Error saving wrong word:", e);
+            }
+        }
+
+        function addScore(points) {
+            gameState.score += points;
+            els.scoreDisplay.innerText = gameState.score;
+            els.myScoreDisplay.innerText = gameState.score;
+            
+            // Visual feedback on score
+            els.scoreDisplay.classList.add('text-[#facc15]');
+            setTimeout(() => els.scoreDisplay.classList.remove('text-[#facc15]'), 200);
+            
+            saveScore();
+        }
+
+        function update(dt) {
+            if (!gameState.isRunning || gameState.isPaused) return;
+
+            // Keyboard Movement Logic (직접 이동 방식으로 수정하여 즉각적이고 확실하게 반응하도록 개선)
+            const moveSpeed = 6; // 일정한 보통 속도로 고정
+            if (keys['ArrowLeft'] || keys['KeyA']) player.x -= moveSpeed;
+            if (keys['ArrowRight'] || keys['KeyD']) player.x += moveSpeed;
+            if (keys['ArrowUp'] || keys['KeyW']) player.y -= moveSpeed;
+            if (keys['ArrowDown'] || keys['KeyS']) player.y += moveSpeed; // 아래 이동 버그(+=) 수정
+
+            // 화면 밖으로 나가지 않게 경계 고정
+            player.x = Math.max(player.width/2, Math.min(canvas.width - player.width/2, player.x));
+            player.y = Math.max(player.height/2, Math.min(canvas.height - player.height/2, player.y));
+
+            // Update Bullets
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const b = bullets[i];
+                b.y += b.speed;
+                if (b.y < -20) bullets.splice(i, 1);
+            }
+
+            // Update Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.02;
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+
+            // Update Enemies
+            let roundComplete = false;
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const e = enemies[i];
+                if (!e.active) continue;
+
+                e.y += e.speed;
+                e.wobbleOffset += 0.05;
+                const wobbleX = e.x + Math.sin(e.wobbleOffset) * 10;
+
+                // Off screen check
+                if (e.y > canvas.height + 20) {
+                    e.y = -50; // Loop back to top
+                }
+
+                // Collision with bullets (AABB)
+                for (let j = bullets.length - 1; j >= 0; j--) {
+                    const b = bullets[j];
+                    // Simple AABB using visual wobble X
+                    if (b.x < wobbleX + e.width/2 && 
+                        b.x + b.width > wobbleX - e.width/2 &&
+                        b.y < e.y + e.height/2 &&
+                        b.y + b.height > e.y - e.height/2) {
+                        
+                        // Hit!
+                        bullets.splice(j, 1);
+                        
+                        if (e.isCorrect) {
+                            createExplosion(wobbleX, e.y, e.color, true); 
+                            addScore(1); 
+                            roundComplete = true; 
+                            enemies.forEach(en => en.active = false); 
+                            break;
+                        } else {
+                            createExplosion(wobbleX, e.y, '#f87171', false); 
+                            addScore(-1); 
+                            e.active = false; 
+                            recordWrongWord(e.text); 
+                        }
+                    }
+                }
+            }
+
+            if (roundComplete) {
+                setTimeout(loadNextQuestion, 1500); // Wait a bit before next question
+            }
+        }
+
+        function drawPlayer() {
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            
+            if (gameState.shipType === 'type1') {
+                // Pixel Art Retro Ship
+                ctx.fillStyle = '#38bdf8'; // Cyan
+                
+                // Central body
+                ctx.fillRect(-4, -12, 8, 20);
+                // Nose tip
+                ctx.fillRect(-2, -16, 4, 4);
+                // Wings
+                ctx.fillRect(-16, 0, 32, 4);
+                ctx.fillRect(-16, 4, 4, 4);
+                ctx.fillRect(12, 4, 4, 4);
+                // Details (cockpit)
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(-2, -6, 4, 4);
+                
+                // Thruster flame
+                if(Math.random() > 0.3) {
+                    ctx.fillStyle = '#fb923c'; // Orange
+                    ctx.fillRect(-4, 8, 8, 6);
+                    ctx.fillStyle = '#facc15'; // Yellow core
+                    ctx.fillRect(-2, 8, 4, 4);
+                }
+            } else if (gameState.shipType === 'type2') {
+                // Purple UFO
+                ctx.fillStyle = '#a855f7'; // Purple base
+                ctx.fillRect(-16, -2, 32, 8);
+                ctx.fillRect(-20, 2, 40, 4);
+                ctx.fillStyle = '#60a5fa'; // Glass dome
+                ctx.fillRect(-10, -10, 20, 8);
+                ctx.fillStyle = '#ffffff'; // Dome highlight
+                ctx.fillRect(2, -8, 4, 4);
+                
+                // Lights
+                if(Math.random() > 0.1) {
+                    ctx.fillStyle = '#facc15';
+                    ctx.fillRect(-14, 2, 4, 4);
+                    ctx.fillRect(-4, 2, 4, 4);
+                    ctx.fillRect(6, 2, 4, 4);
+                    ctx.fillRect(14, 2, 4, 4);
+                }
+                // Thruster
+                if(Math.random() > 0.3) {
+                    ctx.fillStyle = '#38bdf8'; 
+                    ctx.fillRect(-6, 6, 12, 6);
+                }
+            } else if (gameState.shipType === 'type3') {
+                // Red Stealth
+                ctx.fillStyle = '#ef4444'; // Red body
+                ctx.fillRect(-2, -16, 4, 28);
+                ctx.fillRect(-14, 0, 28, 12);
+                ctx.fillRect(-20, 8, 40, 4);
+                ctx.fillStyle = '#b91c1c'; // Dark red details
+                ctx.fillRect(-20, 12, 8, 4);
+                ctx.fillRect(12, 12, 8, 4);
+                ctx.fillStyle = '#1f2937'; // Cockpit
+                ctx.fillRect(-2, -4, 4, 8);
+                
+                // Thrusters
+                if(Math.random() > 0.3) {
+                    ctx.fillStyle = '#facc15';
+                    ctx.fillRect(-10, 12, 4, 6);
+                    ctx.fillRect(6, 12, 4, 6);
+                }
+            } else if (gameState.shipType === 'type4') {
+                // 비행접시
+                ctx.fillStyle = '#10b981';
+                ctx.fillRect(-16, -2, 32, 6);
+                ctx.fillRect(-24, 2, 48, 4);
+                ctx.fillStyle = '#6ee7b7';
+                ctx.fillRect(-8, -8, 16, 6);
+                if(Math.random() > 0.1) {
+                    ctx.fillStyle = '#facc15';
+                    ctx.fillRect(-18, 2, 4, 4);
+                    ctx.fillRect(-8, 2, 4, 4);
+                    ctx.fillRect(4, 2, 4, 4);
+                    ctx.fillRect(14, 2, 4, 4);
+                }
+            } else if (gameState.shipType === 'type5') {
+                // 종이비행기
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.moveTo(0, -16);
+                ctx.lineTo(-12, 16);
+                ctx.lineTo(0, 8);
+                ctx.lineTo(12, 16);
+                ctx.closePath();
+                ctx.fill();
+            } else if (gameState.shipType === 'type6') {
+                // 제트기
+                ctx.fillStyle = '#3b82f6';
+                ctx.fillRect(-2, -18, 4, 30);
+                ctx.fillRect(-12, 4, 24, 8);
+                ctx.fillRect(-6, 12, 12, 4);
+                ctx.fillStyle = '#93c5fd';
+                ctx.fillRect(-2, -6, 4, 8);
+                if(Math.random() > 0.3) {
+                    ctx.fillStyle = '#fb923c';
+                    ctx.fillRect(-4, 16, 8, 8);
+                }
+            }
+
+            ctx.restore();
+        }
+
+        function drawBackground() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (gameState.background === '우주') {
+                // Deep space background
+                ctx.fillStyle = '#05050a'; 
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Moving Stars
+                ctx.fillStyle = '#ffffff';
+                for(let i=0; i<40; i++) {
+                    const x = (i * 73) % canvas.width;
+                    const speed = (i % 3) + 1;
+                    const y = (Date.now() / (30 / speed) + i * 321) % canvas.height;
+                    ctx.globalAlpha = speed / 3;
+                    ctx.fillRect(x, y, 2, 2);
+                }
+            } else if (gameState.background === '노을 도시') {
+                ctx.fillStyle = '#2e1025'; 
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#f97316'; 
+                ctx.globalAlpha = 0.15;
+                ctx.fillRect(0, 0, canvas.width, canvas.height / 2);
+                
+                ctx.fillStyle = '#170812';
+                ctx.globalAlpha = 1.0;
+                for(let i=0; i<12; i++) {
+                    const x = (i * 120 - (Date.now() / 40) % 120);
+                    ctx.fillRect(x, canvas.height - 150 + (i%4)*20, 90, 200);
+                }
+            } else if (gameState.background === '바다') {
+                ctx.fillStyle = '#0a1930'; 
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#0284c7';
+                for(let i=0; i<25; i++) {
+                    const x = (i * 110 - (Date.now() / 20) % 110);
+                    const y = (i * 45) % canvas.height;
+                    ctx.fillRect(x, y, 70, 2);
+                }
+            } else if (gameState.background === '사이버') {
+                ctx.fillStyle = '#0f172a'; 
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#10b981';
+                ctx.globalAlpha = 0.2;
+                const offset = (Date.now() / 30) % 50;
+                for(let y=0; y<canvas.height; y+=50) ctx.fillRect(0, y + offset, canvas.width, 1);
+                for(let x=0; x<canvas.width; x+=50) ctx.fillRect(x, 0, 1, canvas.height);
+            } else if (gameState.background === '파란 하늘') {
+                ctx.fillStyle = '#38bdf8'; 
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#ffffff';
+                ctx.globalAlpha = 0.7;
+                for(let i=0; i<8; i++) {
+                    const x = (i * 250 - (Date.now() / 50) % 250);
+                    const y = 30 + (i * 80) % (canvas.height / 2);
+                    ctx.fillRect(x, y, 70, 20);
+                    ctx.fillRect(x+10, y-10, 50, 10);
+                }
+            } else if (gameState.background === '회로판') {
+                ctx.fillStyle = '#064e3b'; 
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#fbbf24';
+                ctx.globalAlpha = 0.25;
+                const offset = (Date.now() / 40) % 120;
+                for(let i=0; i<12; i++) {
+                    const y = (i * 80 + offset) % canvas.height;
+                    ctx.fillRect(0, y, canvas.width, 2);
+                    ctx.fillRect((i*90)%canvas.width, y - 4, 10, 10);
+                }
+            }
+            ctx.globalAlpha = 1.0;
+        }
+
+        function draw() {
+            drawBackground();
+
+            // Draw Particles (Pixels)
+            particles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.life;
+                ctx.fillRect(p.x, p.y, p.size, p.size);
+            });
+            ctx.globalAlpha = 1.0;
+
+            // Draw Bullets (Lasers)
+            bullets.forEach(b => {
+                ctx.fillStyle = b.color;
+                ctx.fillRect(b.x - b.width/2, b.y, b.width, b.height);
+            });
+
+            // Draw Enemies (Retro Boxes)
+            ctx.font = "bold 16px 'DungGeunMo'";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+
+            enemies.forEach(e => {
+                if (!e.active) return;
+                
+                const wobbleX = e.x + Math.sin(e.wobbleOffset) * 10;
+                
+                // Box Borders
+                ctx.strokeStyle = e.color;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(wobbleX - e.width/2, e.y - e.height/2, e.width, e.height);
+                
+                // Corner nodes
+                ctx.fillStyle = e.color;
+                ctx.fillRect(wobbleX - e.width/2 - 2, e.y - e.height/2 - 2, 4, 4);
+                ctx.fillRect(wobbleX + e.width/2 - 2, e.y - e.height/2 - 2, 4, 4);
+                ctx.fillRect(wobbleX - e.width/2 - 2, e.y + e.height/2 - 2, 4, 4);
+                ctx.fillRect(wobbleX + e.width/2 - 2, e.y + e.height/2 - 2, 4, 4);
+                
+                // Inner dark bg
+                ctx.fillStyle = '#0f101f';
+                ctx.fillRect(wobbleX - e.width/2 + 2, e.y - e.height/2 + 2, e.width - 4, e.height - 4);
+                
+                // Text
+                ctx.fillStyle = '#ffffff'; 
+                ctx.fillText(e.text, wobbleX, e.y);
+            });
+
+            drawPlayer();
+
+            if (gameState.isPaused) {
+                ctx.fillStyle = 'rgba(5, 5, 10, 0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#facc15'; 
+                ctx.font = "bold 32px 'DungGeunMo'";
+                ctx.textAlign = "center";
+                ctx.fillText("II 멈춤", canvas.width / 2, canvas.height / 2);
+            }
+        }
+
+        function gameLoop(timestamp) {
+            const dt = timestamp - lastTime;
+            lastTime = timestamp;
+            
+            update(dt);
+            draw();
+            
+            if (gameState.isRunning || particles.length > 0) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // ==========================================
+        // INPUT HANDLING
+        // ==========================================
+        
+        // 오직 키보드로만 조작하도록 마우스 및 터치 이벤트 제거됨
+        const keys = {};
+        window.addEventListener('keydown', e => {
+            keys[e.code] = true;
+            
+            // 스페이스바 및 방향키 기본 브라우저 동작(스크롤, 버튼 포커스 클릭) 방지
+            if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+                e.preventDefault(); 
+            }
+            
+            // 수동 발사 기능 (스페이스바 꾹 누름 방지)
+            if (e.code === 'Space' && !e.repeat && gameState.isRunning && !gameState.isPaused) {
+                bullets.push({
+                    x: player.x,
+                    y: player.y - player.height/2,
+                    width: 4, height: 12, 
+                    speed: -6, // 총알 속도 적당하게 조정
+                    color: '#facc15' 
+                });
+            }
+        });
+        window.addEventListener('keyup', e => {
+            keys[e.code] = false;
+        });
+
+        // ==========================================
+        // INITIALIZATION & UI EVENTS
+        // ==========================================
+        
+        // Wait for page load
+        window.onload = async () => {
+            initGameObjects();
+            draw(); // 게임 초기 화면 렌더링
+            await initAuth();
+            
+            // If we successfully authed, show login modal to get nickname
+            modals.login.classList.remove('hidden');
+        };
+
+        // Modal Option Selection Logic
+        const bgBtns = document.querySelectorAll('#bgSelectGroup button');
+        const shipBtns = document.querySelectorAll('#shipSelectGroup button');
+
+        bgBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                bgBtns.forEach(b => {
+                    b.classList.remove('bg-[#1a1b33]', 'border-[#facc15]', 'text-[#facc15]');
+                    b.classList.add('bg-[#141525]', 'border-[#2a2c4c]', 'text-gray-400');
+                });
+                btn.classList.remove('bg-[#141525]', 'border-[#2a2c4c]', 'text-gray-400');
+                btn.classList.add('bg-[#1a1b33]', 'border-[#facc15]', 'text-[#facc15]');
+                gameState.background = btn.dataset.bg;
+                if (!gameState.isRunning) draw(); // 즉시 업데이트
+            });
+        });
+
+        shipBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                shipBtns.forEach(b => {
+                    b.classList.remove('bg-[#1a1b33]', 'border-[#facc15]', 'text-[#facc15]');
+                    b.classList.add('bg-[#141525]', 'border-[#2a2c4c]', 'text-gray-400');
+                });
+                btn.classList.remove('bg-[#141525]', 'border-[#2a2c4c]', 'text-gray-400');
+                btn.classList.add('bg-[#1a1b33]', 'border-[#facc15]', 'text-[#facc15]');
+                gameState.shipType = btn.dataset.ship;
+                if (!gameState.isRunning) draw(); // 즉시 업데이트
+            });
+        });
+
+        els.btnJoin.addEventListener('click', () => {
+            const name = els.nicknameInput.value.trim().toUpperCase();
+            if (name.length < 2) {
+                showAlert("닉네임은 2글자 이상이어야 합니다.");
+                return;
+            }
+            gameState.nickname = name;
+            els.myNicknameDisplay.innerText = name;
+            modals.login.classList.add('hidden');
+            modals.login.classList.remove('flex');
+            
+            draw(); // 모달이 닫힌 후 화면 업데이트
+            saveScore();
+        });
+
+        // Admin functionality
+        els.btnAdmin.addEventListener('click', async () => {
+            modals.admin.classList.remove('hidden');
+            modals.admin.classList.add('flex');
+            
+            els.adminRankingList.innerHTML = '<div class="text-gray-500 text-center mt-4">데이터 불러오는 중...</div>';
+            els.adminWrongWordsList.innerHTML = '<div class="text-gray-500 text-center mt-4">데이터 불러오는 중...</div>';
+            modals.admin.classList.add('flex');
+            
+            els.adminRankingList.innerHTML = '<div class="text-gray-400 text-center mt-4">데이터 불러오는 중...</div>';
+            els.adminWrongWordsList.innerHTML = '<div class="text-gray-400 text-center mt-4">데이터 불러오는 중...</div>';
+
+            try {
+                // Fetch Rankings
+                const lbCollection = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
+                const lbSnap = await getDocs(lbCollection);
+                let players = [];
+                lbSnap.forEach(doc => players.push(doc.data()));
+                players.sort((a, b) => b.score - a.score);
+                
+                els.adminRankingList.innerHTML = '';
+                players.forEach((p, i) => {
+                    const el = document.createElement('div');
+                    el.className = "flex justify-between items-center bg-[#1a1b33] p-3 rounded border border-[#2a2c4c] text-sm";
+                    el.innerHTML = `<span><strong class="text-[#38bdf8] w-6 inline-block">${i+1}</strong> <span class="text-white">${p.nickname}</span></span> <span class="font-bold text-[#facc15]">${p.score}점</span>`;
+                    els.adminRankingList.appendChild(el);
+                });
+                if(players.length === 0) els.adminRankingList.innerHTML = '<div class="text-gray-500 text-center mt-4">데이터가 없습니다.</div>';
+
+                // Fetch Wrong Words
+                const wordsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'wrong_words');
+                const wordsSnap = await getDocs(wordsCollection);
+                let words = [];
+                wordsSnap.forEach(doc => words.push(doc.data()));
+                words.sort((a, b) => b.count - a.count);
+                
+                els.adminWrongWordsList.innerHTML = '';
+                words.forEach((w, i) => {
+                    const el = document.createElement('div');
+                    el.className = "flex justify-between items-center bg-[#1a1b33] p-3 rounded border border-[#2a2c4c] text-sm";
+                    el.innerHTML = `<span><strong class="text-[#f87171] w-6 inline-block">${i+1}</strong> <span class="text-white">${w.word}</span></span> <span class="font-bold text-[#f87171]">${w.count}회 오답</span>`;
+                    els.adminWrongWordsList.appendChild(el);
+                });
+                if(words.length === 0) els.adminWrongWordsList.innerHTML = '<div class="text-gray-500 text-center mt-4">데이터가 없습니다.</div>';
+
+            } catch(e) {
+                console.error(e);
+                els.adminRankingList.innerHTML = '<div class="text-red-500 text-center mt-4">오류 발생</div>';
+                els.adminWrongWordsList.innerHTML = '<div class="text-red-500 text-center mt-4">오류 발생</div>';
+            }
+        });
+
+        els.btnAdminClose.addEventListener('click', () => {
+            modals.admin.classList.add('hidden');
+            modals.admin.classList.remove('flex');
+        });
+
+        // Replaced Start with Make
+        els.btnMake.addEventListener('click', () => {
+            const topic = els.topicInput.value.trim();
+            if (topic.length < 2) {
+                showAlert("복습할 단원이나 내용을 2글자 이상 입력해주세요.");
+                return;
+            }
+            gameState.topic = topic;
+            
+            fetchQuestions(topic);
+        });
+
+        els.btnHome.addEventListener('click', () => {
+            gameState.isRunning = false;
+            gameState.isPaused = false;
+            if(gameState.timerInterval) clearInterval(gameState.timerInterval);
+            els.btnPause.innerText = 'II 멈춤';
+            els.questionContainer.classList.add('hidden');
+            els.questionContainer.classList.remove('flex');
+            els.welcomeText.classList.remove('hidden');
+            initGameObjects(); 
+            draw(); // 화면 리셋
+        });
+
+        els.btnPause.addEventListener('click', () => {
+            if (!gameState.isRunning) return; // Not started yet
+
+            gameState.isPaused = !gameState.isPaused;
+            els.btnPause.innerText = gameState.isPaused ? '계속하기' : '멈춤';
+            
+            if (!gameState.isPaused) {
+                // Resume loop properly if it completely stopped
+                lastTime = performance.now();
+                requestAnimationFrame(gameLoop);
+            }
+        });
+
+    </script>
+</body>
+</html>
