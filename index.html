@@ -56,7 +56,6 @@
         <div class="flex gap-2 text-sm">
             <button id="btnMake" class="bg-[#1a1b33] border border-[#2a2c4c] hover:bg-[#2a2c4c] px-4 rounded transition-colors">문제 만들기</button>
             <button class="bg-[#facc15] text-black font-bold px-4 rounded hover:bg-yellow-500 transition-colors">반 전체 출제</button>
-            <button id="btnAdmin" class="bg-[#141525] border border-[#facc15] text-[#facc15] hover:bg-[#facc15] hover:text-black px-4 rounded transition-colors">관리자</button>
             <button class="bg-[#1a1b33] border border-[#2a2c4c] hover:bg-[#2a2c4c] px-4 rounded transition-colors">소리 켬</button>
         </div>
     </header>
@@ -96,38 +95,26 @@
         <!-- Right: Sidebar -->
         <div class="w-80 flex flex-col gap-3 shrink-0">
             <!-- Current Status -->
-            <div class="retro-border rounded p-4 text-sm">
-                <div class="flex justify-between text-[#38bdf8] border-b border-[#2a2c4c] pb-2 mb-3">
-                    <span>지금 접속</span>
-                    <span id="onlineCount">1명</span>
+            <div class="retro-border rounded p-4 text-sm flex-1">
+                <div class="flex justify-between items-center border-b border-[#2a2c4c] pb-3 mb-3">
+                    <span class="text-[#38bdf8] font-bold text-lg tracking-widest">MY STATUS</span>
                 </div>
-                <div class="flex justify-between items-center">
+                <div class="flex flex-col gap-4">
                     <div class="flex items-start gap-2">
                         <div class="w-2 h-2 bg-[#4ade80] rounded-sm mt-1"></div>
                         <div>
-                            <div class="font-bold text-white"><span id="myNicknameDisplay">조종사</span> <span class="text-xs text-red-400">나</span></div>
-                            <div class="text-xs text-gray-400 mt-1">플레이 대기 중</div>
+                            <div class="font-bold text-white text-xl"><span id="myNicknameDisplay">조종사</span></div>
+                            <div class="text-xs text-gray-400 mt-1">플레이어</div>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <div class="font-bold text-white text-lg leading-none mb-1"><span id="myScoreDisplay">0</span></div>
-                        <div class="text-xs text-gray-400">점</div>
+                    <div class="bg-[#141525] p-4 rounded border border-[#2a2c4c] text-center mt-2">
+                        <div class="text-xs text-gray-400 mb-1">현재 점수</div>
+                        <div class="font-bold text-[#facc15] text-4xl font-['DungGeunMo']"><span id="myScoreDisplay">0</span></div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Live Ranking -->
-            <div class="retro-border rounded flex-1 flex flex-col min-h-0">
-                <div class="flex justify-between items-center p-4 border-b border-[#2a2c4c]">
-                    <span class="text-[#38bdf8] font-bold text-lg tracking-widest">LIVE RANKING</span>
-                    <span class="text-xs text-gray-400">플레이 중</span>
-                </div>
-                <div class="flex text-center border-b border-[#2a2c4c] text-sm">
-                    <div class="flex-1 py-2 text-[#facc15] border-b-2 border-[#facc15] bg-[#1a1b33] cursor-pointer">누적 점수</div>
-                    <div class="flex-1 py-2 text-gray-500 cursor-pointer hover:bg-[#1a1b33]">이번 게임</div>
-                </div>
-                <div id="leaderboardList" class="flex-1 overflow-y-auto p-2 space-y-1">
-                    <div class="text-gray-500 text-center mt-10 text-sm">서버에 연결 중...</div>
+                    <div class="bg-[#141525] p-4 rounded border border-[#2a2c4c] text-center mt-2">
+                        <div class="text-xs text-gray-400 mb-1">진행 상황</div>
+                        <div class="font-bold text-white text-xl font-['DungGeunMo']"><span id="progressDisplay">- / -</span></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -170,31 +157,10 @@
     <div id="loginModal" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="retro-border p-8 max-w-md w-full text-center rounded">
             <h1 class="text-3xl text-[#facc15] font-bold mb-2 tracking-widest">WORD SKY</h1>
-            <p class="mb-6 text-gray-400 text-sm">순위에 등록할 닉네임을 입력하세요.</p>
+            <p class="mb-6 text-gray-400 text-sm">로컬 플레이어 닉네임을 입력하세요.</p>
             <input type="text" id="nicknameInput" maxlength="12" placeholder="닉네임" class="w-full bg-[#141525] border border-[#2a2c4c] text-white p-3 rounded mb-6 outline-none focus:border-[#facc15] text-center font-bold" autocomplete="off">
             
             <button id="btnJoin" class="w-full bg-[#facc15] hover:bg-yellow-500 text-black font-bold py-3 rounded transition-colors">접속하기</button>
-        </div>
-    </div>
-
-    <!-- Admin Modal -->
-    <div id="adminModal" class="modal-overlay fixed inset-0 z-[60] hidden flex-col items-center justify-center p-4">
-        <div class="retro-border p-6 max-w-2xl w-full flex flex-col h-[80vh] rounded">
-            <div class="flex justify-between items-center mb-4 border-b border-[#2a2c4c] pb-4">
-                <h2 class="text-xl text-[#facc15] font-bold tracking-widest">관리자 모드</h2>
-                <button id="btnAdminClose" class="text-gray-400 hover:text-red-500 font-bold text-xl">&times;</button>
-            </div>
-            
-            <div class="flex-1 flex flex-col md:flex-row gap-4 overflow-hidden mt-2">
-                <div class="flex-1 bg-[#141525] rounded p-4 flex flex-col overflow-hidden border border-[#2a2c4c]">
-                    <h3 class="text-[#38bdf8] font-bold mb-4 text-center">🏆 학생 전체 랭킹</h3>
-                    <div id="adminRankingList" class="flex-1 overflow-y-auto space-y-2 pr-2 text-sm"></div>
-                </div>
-                <div class="flex-1 bg-[#141525] rounded p-4 flex flex-col overflow-hidden border border-[#2a2c4c]">
-                    <h3 class="text-[#f87171] font-bold mb-4 text-center">📝 자주 틀리는 단어</h3>
-                    <div id="adminWrongWordsList" class="flex-1 overflow-y-auto space-y-2 pr-2 text-sm"></div>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -211,28 +177,7 @@
         <div class="text-sm text-[#38bdf8]">AI가 문제를 생성하고 있습니다</div>
     </div>
 
-    <!-- Firebase SDK Imports -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection, query, increment, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Global Setup
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'vocab-shooter-app';
-        let firebaseConfig = null;
-        try {
-            firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-                // Mock config for local testing if needed, though usually provided by env
-                apiKey: "mock-key", projectId: "mock-project"
-            };
-        } catch (e) {
-            console.error("Firebase config error", e);
-        }
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-
+    <script>
         // Game State
         let gameState = {
             isRunning: false,
@@ -257,7 +202,6 @@
         const ctx = canvas.getContext('2d');
         const modals = {
             login: document.getElementById('loginModal'),
-            admin: document.getElementById('adminModal'),
             alert: document.getElementById('alertModal'),
             loading: document.getElementById('loadingOverlay')
         };
@@ -265,11 +209,7 @@
             nicknameInput: document.getElementById('nicknameInput'),
             topicInput: document.getElementById('topicInput'),
             btnJoin: document.getElementById('btnJoin'),
-            btnMake: document.getElementById('btnMake'), // New button
-            btnAdmin: document.getElementById('btnAdmin'),
-            btnAdminClose: document.getElementById('btnAdminClose'),
-            adminRankingList: document.getElementById('adminRankingList'),
-            adminWrongWordsList: document.getElementById('adminWrongWordsList'),
+            btnMake: document.getElementById('btnMake'),
             btnHome: document.getElementById('btnHome'),
             btnPause: document.getElementById('btnPause'),
             scoreDisplay: document.getElementById('scoreDisplay'),
@@ -279,9 +219,9 @@
             questionText: document.getElementById('questionText'),
             qNumber: document.getElementById('qNumber'),
             topicLabel: document.getElementById('topicLabel'),
-            leaderboardList: document.getElementById('leaderboardList'),
             myNicknameDisplay: document.getElementById('myNicknameDisplay'),
             myScoreDisplay: document.getElementById('myScoreDisplay'),
+            progressDisplay: document.getElementById('progressDisplay'),
             alertMessage: document.getElementById('alertMessage'),
             btnAlertOk: document.getElementById('btnAlertOk')
         };
@@ -296,103 +236,6 @@
             modals.alert.classList.add('hidden');
             modals.alert.classList.remove('flex');
         });
-
-        // ==========================================
-        // FIREBASE LOGIC
-        // ==========================================
-        
-        async function initAuth() {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-                
-                gameState.userId = auth.currentUser.uid;
-                setupLeaderboardListener();
-                
-                // Check if user already has a session/nickname saved locally (for persistence across reloads in same iframe)
-                // For this implementation, we force login to get nickname every time to ensure it matches their intent,
-                // but we could use local variables if needed. We'll stick to the modal.
-            } catch (error) {
-                console.error("Auth error:", error);
-                showAlert("서버 연결에 실패했습니다.");
-            }
-        }
-
-        async function saveScore() {
-            if (!gameState.userId || !gameState.nickname) return;
-            
-            // Debounce saves slightly to prevent spam if score changes rapidly
-            const now = Date.now();
-            if (now - gameState.lastScoreSync < 1000) return; 
-            gameState.lastScoreSync = now;
-
-            try {
-                const lbRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', gameState.userId);
-                await setDoc(lbRef, {
-                    nickname: gameState.nickname,
-                    score: gameState.score,
-                    updatedAt: now
-                }, { merge: true });
-            } catch (e) {
-                console.error("Error saving score:", e);
-            }
-        }
-
-        function setupLeaderboardListener() {
-            if (!gameState.userId) return;
-            
-            const lbCollection = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
-            // Rule 2: No complex queries. We fetch all and sort in memory.
-            const q = query(lbCollection);
-            
-            onSnapshot(q, (snapshot) => {
-                let players = [];
-                snapshot.forEach(doc => {
-                    players.push({ id: doc.id, ...doc.data() });
-                });
-                
-                // Sort descending by score
-                players.sort((a, b) => b.score - a.score);
-                
-                renderLeaderboard(players);
-            }, (error) => {
-                console.error("Leaderboard listener error:", error);
-            });
-        }
-
-        function renderLeaderboard(players) {
-            els.leaderboardList.innerHTML = '';
-            if (players.length === 0) {
-                els.leaderboardList.innerHTML = '<div class="text-gray-500 text-center mt-10 text-sm">등록된 조종사가 없습니다.</div>';
-                return;
-            }
-
-            players.forEach((p, index) => {
-                const isMe = p.id === gameState.userId;
-                const item = document.createElement('div');
-                item.className = `flex justify-between items-center p-3 rounded-md ${isMe ? 'bg-[#1a1b33] border border-[#38bdf8]' : 'bg-[#0f101f] border border-transparent hover:bg-[#141525]'}`;
-                
-                let rankColor = 'text-gray-500';
-                if (index === 0) rankColor = 'text-[#facc15]';
-                else if (index === 1) rankColor = 'text-gray-300';
-                else if (index === 2) rankColor = 'text-[#fb923c]';
-
-                item.innerHTML = `
-                    <div class="flex items-center space-x-3 truncate">
-                        <span class="${rankColor} font-bold text-sm w-4">${index + 1}</span>
-                        <div class="flex flex-col">
-                            <span class="text-white font-bold truncate max-w-[100px] text-sm">${p.nickname} ${isMe ? '<span class="text-[#4ade80] text-[10px] ml-1">● LIVE</span>' : ''}</span>
-                            <span class="text-[10px] text-gray-500">최고 ${p.score}</span>
-                        </div>
-                    </div>
-                    <div class="text-white font-bold text-lg font-['DungGeunMo']">${p.score}</div>
-                `;
-                els.leaderboardList.appendChild(item);
-            });
-        }
 
         // ==========================================
         // GEMINI API LOGIC
@@ -493,7 +336,44 @@ Keep questions concise and answers short (max 2-3 words if possible).`;
 
             } catch (error) {
                 console.error("Gemini API Error:", error);
-                showAlert("데이터 생성에 실패했습니다. 다른 주제를 시도해보세요.");
+                
+                // 에러 알림창을 띄우지 않고 기본 정보교과 문제로 게임 시작
+                const defaultQuestions = [
+                    { question: "컴퓨터에서 정보를 처리하는 가장 기본적인 단위는?", correct: "비트", incorrect: ["바이트", "픽셀", "워드"] },
+                    { question: "네트워크 상에서 컴퓨터를 식별하기 위한 숫자로 된 주소는?", correct: "IP주소", incorrect: ["MAC주소", "URL", "도메인"] },
+                    { question: "알고리즘을 자연어와 프로그래밍 언어의 중간 형태로 간단히 표현하는 방법은?", correct: "의사코드", incorrect: ["기계어", "어셈블리", "순서도"] },
+                    { question: "인터넷에서 웹 페이지를 찾기 위해 사용하는 영문 주소는?", correct: "URL", incorrect: ["HTTP", "HTML", "FTP"] },
+                    { question: "중앙처리장치(CPU)와 주기억장치 사이의 속도 차이를 줄여주는 메모리는?", correct: "캐시", incorrect: ["롬", "플래시", "가상메모리"] },
+                    { question: "소프트웨어의 버그를 찾아내고 수정하는 과정은?", correct: "디버깅", incorrect: ["컴파일", "인터프리트", "링크"] },
+                    { question: "데이터베이스에서 원하는 조건에 맞는 데이터를 검색하는 언어는?", correct: "SQL", incorrect: ["자바", "파이썬", "C언어"] },
+                    { question: "통신망을 통해 데이터를 주고받기 위한 통신 규약은?", correct: "프로토콜", incorrect: ["인터페이스", "토폴로지", "패킷"] },
+                    { question: "컴퓨터의 모든 장치를 제어하고 관리하는 핵심 소프트웨어는?", correct: "운영체제", incorrect: ["응용프로그램", "컴파일러", "펌웨어"] },
+                    { question: "인터넷을 통해 소프트웨어나 데이터를 빌려 쓰는 서비스는?", correct: "클라우드", incorrect: ["메타버스", "블록체인", "빅데이터"] }
+                ];
+            
+                // 10문제를 2번 반복하여 20문제로 세팅
+                gameState.questionQueue = [...defaultQuestions, ...defaultQuestions];
+                gameState.totalQuestions = gameState.questionQueue.length;
+                gameState.currentQIndex = 0;
+                
+                els.welcomeText.classList.add('hidden');
+                els.questionContainer.classList.remove('hidden');
+                els.questionContainer.classList.add('flex');
+                els.topicLabel.innerText = topic || "기본 문제";
+
+                // Start Timer
+                gameState.timeElapsed = 0;
+                els.timeDisplay.innerText = gameState.timeElapsed;
+                if(gameState.timerInterval) clearInterval(gameState.timerInterval);
+                gameState.timerInterval = setInterval(() => {
+                    if(gameState.isRunning && !gameState.isPaused) {
+                        gameState.timeElapsed++;
+                        els.timeDisplay.innerText = gameState.timeElapsed;
+                    }
+                }, 1000);
+                
+                loadNextQuestion();
+
             } finally {
                 modals.loading.classList.add('hidden');
                 modals.loading.classList.remove('flex');
@@ -506,6 +386,7 @@ Keep questions concise and answers short (max 2-3 words if possible).`;
                 gameState.isRunning = false;
                 els.questionText.innerText = "모든 문제를 완료했습니다!";
                 els.qNumber.innerText = "CLEAR";
+                els.progressDisplay.innerText = "완료!";
                 clearInterval(gameState.timerInterval);
                 return;
             }
@@ -517,6 +398,7 @@ Keep questions concise and answers short (max 2-3 words if possible).`;
             gameState.currentQuestion = gameState.questionQueue.shift();
             
             els.qNumber.innerText = `Q ${gameState.currentQIndex}/${gameState.totalQuestions}`;
+            els.progressDisplay.innerText = `${gameState.currentQIndex} / ${gameState.totalQuestions}`;
             els.questionText.innerText = gameState.currentQuestion.question;
             
             spawnWords();
@@ -627,17 +509,6 @@ Keep questions concise and answers short (max 2-3 words if possible).`;
             }
         }
 
-        async function recordWrongWord(word) {
-            try {
-                // Ensure no slashes in word as document ID
-                const safeWord = word.replace(/\//g, '_');
-                const wordRef = doc(db, 'artifacts', appId, 'public', 'data', 'wrong_words', safeWord);
-                await setDoc(wordRef, { word: word, count: increment(1) }, { merge: true });
-            } catch (e) {
-                console.error("Error saving wrong word:", e);
-            }
-        }
-
         function addScore(points) {
             gameState.score += points;
             els.scoreDisplay.innerText = gameState.score;
@@ -646,8 +517,6 @@ Keep questions concise and answers short (max 2-3 words if possible).`;
             // Visual feedback on score
             els.scoreDisplay.classList.add('text-[#facc15]');
             setTimeout(() => els.scoreDisplay.classList.remove('text-[#facc15]'), 200);
-            
-            saveScore();
         }
 
         function update(dt) {
@@ -717,7 +586,6 @@ Keep questions concise and answers short (max 2-3 words if possible).`;
                             createExplosion(wobbleX, e.y, '#f87171', false); 
                             addScore(-1); 
                             e.active = false; 
-                            recordWrongWord(e.text); 
                         }
                     }
                 }
@@ -1016,12 +884,11 @@ Keep questions concise and answers short (max 2-3 words if possible).`;
         // ==========================================
         
         // Wait for page load
-        window.onload = async () => {
+        window.onload = () => {
             initGameObjects();
             draw(); // 게임 초기 화면 렌더링
-            await initAuth();
             
-            // If we successfully authed, show login modal to get nickname
+            // Show login modal to get nickname
             modals.login.classList.remove('hidden');
         };
 
@@ -1067,64 +934,6 @@ Keep questions concise and answers short (max 2-3 words if possible).`;
             modals.login.classList.remove('flex');
             
             draw(); // 모달이 닫힌 후 화면 업데이트
-            saveScore();
-        });
-
-        // Admin functionality
-        els.btnAdmin.addEventListener('click', async () => {
-            modals.admin.classList.remove('hidden');
-            modals.admin.classList.add('flex');
-            
-            els.adminRankingList.innerHTML = '<div class="text-gray-500 text-center mt-4">데이터 불러오는 중...</div>';
-            els.adminWrongWordsList.innerHTML = '<div class="text-gray-500 text-center mt-4">데이터 불러오는 중...</div>';
-            modals.admin.classList.add('flex');
-            
-            els.adminRankingList.innerHTML = '<div class="text-gray-400 text-center mt-4">데이터 불러오는 중...</div>';
-            els.adminWrongWordsList.innerHTML = '<div class="text-gray-400 text-center mt-4">데이터 불러오는 중...</div>';
-
-            try {
-                // Fetch Rankings
-                const lbCollection = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
-                const lbSnap = await getDocs(lbCollection);
-                let players = [];
-                lbSnap.forEach(doc => players.push(doc.data()));
-                players.sort((a, b) => b.score - a.score);
-                
-                els.adminRankingList.innerHTML = '';
-                players.forEach((p, i) => {
-                    const el = document.createElement('div');
-                    el.className = "flex justify-between items-center bg-[#1a1b33] p-3 rounded border border-[#2a2c4c] text-sm";
-                    el.innerHTML = `<span><strong class="text-[#38bdf8] w-6 inline-block">${i+1}</strong> <span class="text-white">${p.nickname}</span></span> <span class="font-bold text-[#facc15]">${p.score}점</span>`;
-                    els.adminRankingList.appendChild(el);
-                });
-                if(players.length === 0) els.adminRankingList.innerHTML = '<div class="text-gray-500 text-center mt-4">데이터가 없습니다.</div>';
-
-                // Fetch Wrong Words
-                const wordsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'wrong_words');
-                const wordsSnap = await getDocs(wordsCollection);
-                let words = [];
-                wordsSnap.forEach(doc => words.push(doc.data()));
-                words.sort((a, b) => b.count - a.count);
-                
-                els.adminWrongWordsList.innerHTML = '';
-                words.forEach((w, i) => {
-                    const el = document.createElement('div');
-                    el.className = "flex justify-between items-center bg-[#1a1b33] p-3 rounded border border-[#2a2c4c] text-sm";
-                    el.innerHTML = `<span><strong class="text-[#f87171] w-6 inline-block">${i+1}</strong> <span class="text-white">${w.word}</span></span> <span class="font-bold text-[#f87171]">${w.count}회 오답</span>`;
-                    els.adminWrongWordsList.appendChild(el);
-                });
-                if(words.length === 0) els.adminWrongWordsList.innerHTML = '<div class="text-gray-500 text-center mt-4">데이터가 없습니다.</div>';
-
-            } catch(e) {
-                console.error(e);
-                els.adminRankingList.innerHTML = '<div class="text-red-500 text-center mt-4">오류 발생</div>';
-                els.adminWrongWordsList.innerHTML = '<div class="text-red-500 text-center mt-4">오류 발생</div>';
-            }
-        });
-
-        els.btnAdminClose.addEventListener('click', () => {
-            modals.admin.classList.add('hidden');
-            modals.admin.classList.remove('flex');
         });
 
         // Replaced Start with Make
